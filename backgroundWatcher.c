@@ -8,7 +8,7 @@
 #define TARGET_PROCESS "gedit"  // Target process to check
 
 // Function to check if gedit is running
-int is_gedit_running() {
+int printoutProccesses() {
     int test = 0;
 
     struct dirent *entry; // hold an info on directory entry 
@@ -25,15 +25,15 @@ int is_gedit_running() {
             char filepath[256];
             char proccess_name[256];
 
-            // print full path to file path
+            // print full path to file path 
             snprintf(filepath, sizeof(filepath), "/proc/%s/comm", entry->d_name);
             // open and read file
             FILE *fp = fopen(filepath, "r");
 
             if (fp != NULL){
                 // read proces name
-                if (fget(proccess_name, sizeof(proccess_name), fp) != NULL){
-
+                if (fgets(proccess_name, sizeof(proccess_name), fp) != NULL){
+                    printf("Name: %s\n", proccess_name);
                 }
             }
         }
@@ -46,11 +46,7 @@ int is_gedit_running() {
 
 int main() {
 
-    if (is_gedit_running()) {
-        printf("gedit is running\n");
-    } else {
-        printf("gedit is not running\n");
-    }
+    printoutProccesses();
 
 
     return 0;
