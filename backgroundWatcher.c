@@ -26,14 +26,14 @@ int printoutProccesses() {
             char proccess_name[256];
 
             // print full path to file path 
-            snprintf(filepath, sizeof(filepath), "/proc/%s/comm", entry->d_name);
+            snprintf(filepath, sizeof(filepath), "/proc/%s/stat", entry->d_name);
             // open and read file
             FILE *fp = fopen(filepath, "r");
 
             if (fp != NULL){
                 // read proces name
                 if (fgets(proccess_name, sizeof(proccess_name), fp) != NULL){
-                    printf("Name: %s\n", proccess_name);
+                    printf("%s\n", proccess_name);
                 }
             }
         }
