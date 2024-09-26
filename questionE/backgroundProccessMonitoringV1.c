@@ -175,7 +175,7 @@ int main() {
         FD_ZERO(&set);              // Clear the set
         FD_SET(STDIN_FILENO, &set); // Add stdin file descriptor to the set
 
-        timeout.tv_sec = 1;         // Set timeout to 1 second
+        timeout.tv_sec = 10;         // Set timeout to 1 second
         timeout.tv_usec = 0;
 
         // Use select to wait for input on stdin with a timeout
