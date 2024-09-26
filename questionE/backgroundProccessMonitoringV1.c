@@ -138,13 +138,14 @@ int main() {
         // Display the processes that exceed thresholds
         system("clear"); // Clear the console screen (optional)
 
-        int anyMem = 0, anyCPU = 0; // Flags to check if any process exceeds thresholds
+        int anyMem = 0, anyCPU = 0; // Flags to check if any processes exceed thresholds
 
         // Display processes exceeding memory threshold
         printf("Using more than 200K:\n\n");
         for (int i = 0; i < procCount; ++i) {
             if (procList[i].exceedsMem) {
-                printf("%d- %s (PID %d)\n", procList[i].number, procList[i].exeName, procList[i].pid);
+                // Only display the process name and assigned number
+                printf("%d- %s\n", procList[i].number, procList[i].exeName);
                 anyMem = 1; // Set flag indicating at least one process exceeds memory threshold
             }
         }
@@ -156,7 +157,8 @@ int main() {
         printf("\nUsing more than 3 minutes:\n\n");
         for (int i = 0; i < procCount; ++i) {
             if (procList[i].exceedsCPU) {
-                printf("%d- %s (PID %d)\n", procList[i].number, procList[i].exeName, procList[i].pid);
+                // Only display the process name and assigned number
+                printf("%d- %s\n", procList[i].number, procList[i].exeName);
                 anyCPU = 1; // Set flag indicating at least one process exceeds CPU threshold
             }
         }
@@ -175,7 +177,7 @@ int main() {
         FD_ZERO(&set);              // Clear the set
         FD_SET(STDIN_FILENO, &set); // Add stdin file descriptor to the set
 
-        timeout.tv_sec = 10;         // Set timeout to 1 second
+        timeout.tv_sec = 5;         // Set timeout to 5 seconds
         timeout.tv_usec = 0;
 
         // Use select to wait for input on stdin with a timeout
@@ -199,7 +201,7 @@ int main() {
                     if (pi != NULL) {
                         // Attempt to terminate the process using SIGTERM signal
                         if (kill(pi->pid, SIGTERM) == 0) {
-                            printf("Process %s (PID %d) terminated.\n", pi->exeName, pi->pid);
+                            printf("Process %s terminated.\n", pi->exeName);
                         } else {
                             perror("Failed to terminate process"); // Print error if kill fails
                         }
@@ -214,9 +216,8 @@ int main() {
                 }
             }
         }
-
-        // Sleep for a short duration to reduce CPU usage
-        usleep(100000); // Sleep for 100 milliseconds
+        // Sleep for a short duration to reduce CPU usage (optional)
+        usleep(50000); // Sleep for 50 milliseconds
     }
     return 0;
 }
