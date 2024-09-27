@@ -27,6 +27,10 @@ typedef struct {
 int main(){
     // infinite loop to keep listining for user input and to update terminal
     while (1){
+        // Array to store processes that exceed thresholds
+        ProcessInfo procList[1024];
+        int procCount = 0;  // Count of processes stored
+        int number = 1;     // Number assigned to each process for user reference
         // opening the /proc directory 
         DIR *procDIr = opendir("/proc");
         struct dirent *entry;
@@ -100,6 +104,24 @@ int main(){
                 "%*d %*s %*c %*d %*d %*d %*d %*d " 
                 "%*u %*lu %*lu %*lu %*lu %lu %lu", &utime, &stime); // IF BREAKS CHANGE BACK HERE!!!!!!
                 fclose(statFile); // close the file
+            }
+
+            // Convert ticks to seconds 
+            long ticksPerSec = sysconf(_SC_CLK_TCK);
+            unsigned long totalTime = (utime + stime) / ticksPerSec;
+
+            // ** Storing Processes Exceeding Thresholds ** //
+
+            if (memUsage > MEM_THRESHOLD || totalTime > CPU_THRESHOLD){
+                ProcessInfo *process = &procList[procCount++]; // create an object process and add it to the array of exceeding processes
+                // fill out the info of the object
+                process->pid = pid;
+                strncpy(process->exeName, exeName, sizeof(process->exeName) - 1);  // leave space for the \0
+                process->memUsage = memUsage;
+                process->cpuTime = totalTime;
+                process->exceedsMem = 1; // true
+                process->exceedsCPU = 1; // treu
+                process->number = number++;
             }
 
         }
