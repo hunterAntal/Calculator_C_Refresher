@@ -1,3 +1,6 @@
+// Hunter Antal
+// 1181729
+// Question C
 #include <stdio.h>      // For input/output functions like printf
 #include <stdlib.h>     // For general utilities like exit
 #include <unistd.h>     // For system calls like fork, exec, sleep
