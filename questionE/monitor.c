@@ -1,6 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+// Hunter Antal
+// 1181729
+#include <stdio.h>      // For input/output functions like printf
+#include <stdlib.h>     // For general utilities like exit
+#include <string.h>     // String manipulation functions like strcpy
 #include <dirent.h>     // For directory operations
 #include <unistd.h>     // For various POSIX functions
 #include <ctype.h>      // For character type functions
@@ -11,157 +13,152 @@
 
 // Define thresholds for memory and CPU usage
 #define MEM_THRESHOLD (200 * 1024) // 200 KB
-#define CPU_THRESHOLD (3 * 60) // CPU time in s (3 min)
+#define CPU_THRESHOLD (3 * 60)     // CPU time in seconds (3 minutes)
 
+// Structure to hold process information
 typedef struct {
-    pid_t pid; // process ID
-    char exeName[256]; // process name
-    unsigned long memUsage; // memory usage in KB
-    unsigned long cpuTime; // CPU time in s
-    int exceedsMem; // flag for memory
-    int exceedsCPU; // flag for CPU
-    int number; // number associated with specific process
+    pid_t pid;               // Process ID
+    char exeName[256];       // Process name
+    unsigned long memUsage;  // Memory usage in KB
+    unsigned long cpuTime;   // CPU time in seconds
+    int exceedsMem;          // Flag for memory threshold
+    int exceedsCPU;          // Flag for CPU threshold
+    int number;              // Number associated with the process
 } ProcessInfo;
 
-
-
-int main(){
-    // infinite loop to keep listining for user input and to update terminal
-    while (1){
+int main() {
+    // Infinite loop to keep monitoring and updating
+    while (1) {
         // Array to store processes that exceed thresholds
         ProcessInfo procList[1024];
         int procCount = 0;  // Count of processes stored
         int number = 1;     // Number assigned to each process for user reference
-        // opening the /proc directory 
-        DIR *procDIr = opendir("/proc");
+
+        // Open the /proc directory
+        DIR *procDir = opendir("/proc");
         struct dirent *entry;
 
-        // check that the directory was available 
-        if (procDIr == NULL){
+        // Check that the directory was opened successfully
+        if (procDir == NULL) {
             perror("Failed to open /proc");
             return 1;
         }
 
-        // Read directory stream to entry
-        while ((entry = readdir(procDIr)) != NULL){
-            // skip the entries that do not have pid aka start with digit
-            if(!isdigit(entry->d_name[0])){
+        // Read directory entries
+        while ((entry = readdir(procDir)) != NULL) {
+            // Skip entries that are not process directories (which are numeric)
+            if (!isdigit(entry->d_name[0])) {
                 continue;
             }
 
-            // record the pid by forcing the string to int
+            // Convert the directory name to a PID
             pid_t pid = atoi(entry->d_name);
 
-            // ** Creating File Paths **
+            // Creating file paths
             char statPath[256], cmdlinePath[256], statusPath[256];
             char buffer[1024];
 
-            sprintf(statPath, "/proc/%d/stat", pid); // contains process status info
-            sprintf(cmdlinePath, "/proc/%d/cmdline", pid); // contains command line arguments
-            sprintf(statusPath, "/proc/%d/status", pid); // contains humane-readable statuses
+            sprintf(statPath, "/proc/%d/stat", pid);       // Contains process status info
+            sprintf(cmdlinePath, "/proc/%d/cmdline", pid); // Contains command line arguments
+            sprintf(statusPath, "/proc/%d/status", pid);   // Contains human-readable statuses
 
-            // ** Retreieving the exe name **
-
-            FILE *cmdlineFIle = fopen(cmdlinePath, "r");
+            // Retrieving the executable name
+            FILE *cmdlineFile = fopen(cmdlinePath, "r");
             char exeName[256] = {0};
 
-            if (cmdlineFIle){
-                // Read the command line arguments to find process name corosponding to pid
-                size_t size = fread(exeName, sizeof(char), sizeof(exeName), cmdlineFIle);
-                if (size > 0){
-                    exeName[size] = "\0"; // Null-terminate the string so we know where the name ends
-                } else {
-                    sprintf(exeName, "[%d]", pid); // If command line is empty, use the PID as the name
-                }
-                fclose(cmdlineFIle); // close the file
-            
+            if (cmdlineFile) {
+                // Read the command line arguments to find process name corresponding to PID
+                size_t size = fread(exeName, sizeof(char), sizeof(exeName) - 1, cmdlineFile);
+                exeName[size] = '\0'; // Null-terminate the string
+                fclose(cmdlineFile);  // Close the file
             } else {
-                sprintf(exeName, "[%d]", pid); // If unable to open cmdline file, use the PID as the name
+                sprintf(exeName, "[%d]", pid); // Use PID as name if cmdline cannot be read
             }
 
-            // ** Retreieving the Memory Usage ** //
-
+            // Retrieving the memory usage
             unsigned long memUsage = 0;
             FILE *statusFile = fopen(statusPath, "r");
 
-            if (statusFile){
-                while(fgets(buffer, sizeof(buffer), statusFile)){ // go through status to find VmRSS
-                    if (strncmp(buffer, "VmRSS:", 6) == 0){ // search buffer for VmRSS
-                        sscanf(buffer, "VmRSS: %lu", &memUsage); // input the memory usage and break
+            if (statusFile) {
+                while (fgets(buffer, sizeof(buffer), statusFile)) {
+                    // Search for the line starting with "VmRSS:"
+                    if (strncmp(buffer, "VmRSS:", 6) == 0) {
+                        sscanf(buffer, "VmRSS: %lu", &memUsage); // Extract memory usage
                         break;
                     }
                 }
-                fclose(statusFile); // close the file 
+                fclose(statusFile); // Close the file
             }
 
-            // ** Retrieving the CPU Time ** //
-
+            // Retrieving the CPU time
             unsigned long utime = 0, stime = 0;
-            FILE *statFile = fopen (statPath, "r"); // open /proc/[pid]/stat to get CPU times
+            FILE *statFile = fopen(statPath, "r"); // Open /proc/[pid]/stat
 
-            if (statFile){
-                // Skip over pid(%d), comm(%s), state(%c), ppid(%d), pgrp(%d), session(%d), tty_rn(%d), tpgid(%d), flags(%u), minflt(%lu), cminflt(%lu), majflt(%lu), cmajflt(%lu)
-                fscanf(statFile, 
-                "%*d %*s %*c %*d %*d %*d %*d %*d " 
-                "%*u %*lu %*lu %*lu %*lu %lu %lu", &utime, &stime); // IF BREAKS CHANGE BACK HERE!!!!!!
-                fclose(statFile); // close the file
+            if (statFile) {
+                // Skip fields to reach utime and stime (fields 14 and 15)
+                fscanf(statFile,
+                       "%*d %*s %*c %*d %*d %*d %*d %*d "
+                       "%*u %*u %*u %*u %*u %lu %lu",
+                       &utime, &stime);
+                fclose(statFile); // Close the file
             }
 
-            // Convert ticks to seconds 
+            // Convert ticks to seconds
             long ticksPerSec = sysconf(_SC_CLK_TCK);
             unsigned long totalTime = (utime + stime) / ticksPerSec;
 
-            // ** Storing Processes Exceeding Thresholds ** //
+            // Check if the process exceeds thresholds
+            int exceedsMem = memUsage > MEM_THRESHOLD ? 1 : 0;
+            int exceedsCPU = totalTime > CPU_THRESHOLD ? 1 : 0;
 
-            if (memUsage > MEM_THRESHOLD || totalTime > CPU_THRESHOLD){
-                ProcessInfo *process = &procList[procCount++]; // create an object process and add it to the array of exceeding processes
-                // fill out the info of the object
+            if (exceedsMem || exceedsCPU) {
+                // Store process information
+                ProcessInfo *process = &procList[procCount++]; // Add to array
                 process->pid = pid;
-                strncpy(process->exeName, exeName, sizeof(process->exeName) - 1);  // leave space for the \0
+                strncpy(process->exeName, exeName, sizeof(process->exeName) - 1); // Copy name
+                process->exeName[sizeof(process->exeName) - 1] = '\0';            // Ensure null-terminated
                 process->memUsage = memUsage;
                 process->cpuTime = totalTime;
-                process->exceedsMem = 1; // true
-                process->exceedsCPU = 1; // treu
+                process->exceedsMem = exceedsMem;
+                process->exceedsCPU = exceedsCPU;
                 process->number = number++;
             }
+        }
+        closedir(procDir); // Close the /proc directory
 
-            // ** Disply to User ** //
+        // Display to user
+        system("clear"); // Clear the terminal
 
-            system("clear"); // clear the terminal 
+        int anyMem = 0, anyCPU = 0;
 
-            int anyMem = 0, anyCPU = 0;
-
-            printf("Using More Than 200K:\n\n");
-            for (int i = 0; i < procCount; i++) { // iterate through the list of exceeding processes
-                if (procList[i].exceedsMem){ // if the process exceeds memory
-                    printf("%d- %s\n", procList[i].number, procList[i].exeName);
-                    anyMem = 1; // there is processes using more then 200K mem
-                }
-            } 
-            // if there are no processes using more then 200K then display none
-            if(!anyMem){
-                printf("No processes using over 200K of memory.\n");
+        printf("Using More Than 200K:\n\n");
+        for (int i = 0; i < procCount; i++) {
+            if (procList[i].exceedsMem) {
+                printf("%d- %s\n", procList[i].number, procList[i].exeName);
+                anyMem = 1; // There are processes using more than 200K memory
             }
+        }
+        if (!anyMem) {
+            printf("No processes using over 200K of memory.\n");
+        }
 
-            printf("Alive For More Than 3 Minutes:\n\n");
-            for (int i = 0; i < procCount; i++){
-                if (procList[i].exceedsCPU){ // if the process exceeds time
-                    printf("%d- %s\n", procList[i].number, procList[i].exeName);
-                    anyCPU = 1; // there is processes alive for more then 3 mins
-                }
+        printf("\nAlive For More Than 3 Minutes:\n\n");
+        for (int i = 0; i < procCount; i++) {
+            if (procList[i].exceedsCPU) {
+                printf("%d- %s\n", procList[i].number, procList[i].exeName);
+                anyCPU = 1; // There are processes alive for more than 3 minutes
             }
-            // if there are no processes alive for more then 3 mins
-            if(!anyCPU){
-                printf("No processes alive for more then 3 minutes.\n");
-            }
+        }
+        if (!anyCPU) {
+            printf("No processes alive for more than 3 minutes.\n");
+        }
 
-            // ** Taking User Input ** //
+        // Taking user input
+        printf("\nEnter a number to kill, or Wait 5 Seconds for refresh -> ");
+        char input[256];
+        fgets(input, sizeof(input), stdin); // Read user input
 
-            printf("\nEnter a number to kill, or press Enter to refresh -> ");
-            char input[256];
-            fgets(input, sizeof(input), stdin); // Read user input
-
-            if (input[0] != '\n') { // Check if the user entered something
+        if (input[0] != '\n') { // Check if the user entered something
             int num = atoi(input); // Convert input to an integer
 
             // Find the process with the corresponding number
@@ -174,8 +171,8 @@ int main(){
             }
 
             if (pi != NULL) {
-                // Attempt to terminate the process using SIGTERM signal
-                if (kill(pi->pid, SIGTERM) == 0) {
+                // Attempt to terminate the process using SIGKILL signal
+                if (kill(pi->pid, SIGKILL) == 0) {
                     printf("Process %s terminated.\n", pi->exeName);
                 } else {
                     perror("Failed to terminate process"); // Print error if kill fails
@@ -183,15 +180,13 @@ int main(){
             } else {
                 printf("Invalid number entered.\n");
             }
-            printf("Press Enter to continue...");
-            fgets(input, sizeof(input), stdin); // Wait for user to press Enter
+            printf("Please wait 5 Seconds for Refresh\n");
+            
         }
 
         // Sleep for 5 seconds before refreshing
         sleep(5);
-
-        }
     }
-    
+
     return 0;
 }
