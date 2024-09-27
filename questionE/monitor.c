@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/time.h>
+#include <dirent.h>     // For directory operations
+#include <unistd.h>     // For various POSIX functions
+#include <ctype.h>      // For character type functions
+#include <sys/types.h>  // For data types
+#include <sys/stat.h>   // For file status
+#include <sys/time.h>   // For time structures
+#include <signal.h>     // For signal handling
 
 // Define thresholds for memory and CPU usage
 #define MEM_THRESHOLD (200 * 1024) // 200 KB
@@ -154,6 +155,40 @@ int main(){
                 printf("No processes alive for more then 3 minutes.\n");
             }
 
+            // ** Taking User Input ** //
+
+            printf("\nEnter a number to kill, or press Enter to refresh -> ");
+            char input[256];
+            fgets(input, sizeof(input), stdin); // Read user input
+
+            if (input[0] != '\n') { // Check if the user entered something
+            int num = atoi(input); // Convert input to an integer
+
+            // Find the process with the corresponding number
+            ProcessInfo *pi = NULL;
+            for (int i = 0; i < procCount; ++i) {
+                if (procList[i].number == num) {
+                    pi = &procList[i];
+                    break;
+                }
+            }
+
+            if (pi != NULL) {
+                // Attempt to terminate the process using SIGTERM signal
+                if (kill(pi->pid, SIGTERM) == 0) {
+                    printf("Process %s terminated.\n", pi->exeName);
+                } else {
+                    perror("Failed to terminate process"); // Print error if kill fails
+                }
+            } else {
+                printf("Invalid number entered.\n");
+            }
+            printf("Press Enter to continue...");
+            fgets(input, sizeof(input), stdin); // Wait for user to press Enter
+        }
+
+        // Sleep for 5 seconds before refreshing
+        sleep(5);
 
         }
     }
