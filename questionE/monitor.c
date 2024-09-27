@@ -124,6 +124,37 @@ int main(){
                 process->number = number++;
             }
 
+            // ** Disply to User ** //
+
+            system("clear"); // clear the terminal 
+
+            int anyMem = 0, anyCPU = 0;
+
+            printf("Using More Than 200K:\n\n");
+            for (int i = 0; i < procCount; i++) { // iterate through the list of exceeding processes
+                if (procList[i].exceedsMem){ // if the process exceeds memory
+                    printf("%d- %s\n", procList[i].number, procList[i].exeName);
+                    anyMem = 1; // there is processes using more then 200K mem
+                }
+            } 
+            // if there are no processes using more then 200K then display none
+            if(!anyMem){
+                printf("No processes using over 200K of memory.\n");
+            }
+
+            printf("Alive For More Than 3 Minutes:\n\n");
+            for (int i = 0; i < procCount; i++){
+                if (procList[i].exceedsCPU){ // if the process exceeds time
+                    printf("%d- %s\n", procList[i].number, procList[i].exeName);
+                    anyCPU = 1; // there is processes alive for more then 3 mins
+                }
+            }
+            // if there are no processes alive for more then 3 mins
+            if(!anyCPU){
+                printf("No processes alive for more then 3 minutes.\n");
+            }
+
+
         }
     }
     
