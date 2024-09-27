@@ -55,7 +55,7 @@ int main(){
             sprintf(cmdlinePath, "/proc/%d/cmdline", pid); // contains command line arguments
             sprintf(statusPath, "/proc/%d/status", pid); // contains humane-readable statuses
 
-            // ** Retreaving the exe name **
+            // ** Retreieving the exe name **
 
             FILE *cmdlineFIle = fopen(cmdlinePath, "r");
             char exeName[256] = {0};
@@ -74,15 +74,32 @@ int main(){
                 sprintf(exeName, "[%d]", pid); // If unable to open cmdline file, use the PID as the name
             }
 
-            // ** Retreieving Memory Usage ** //
+            // ** Retreieving the Memory Usage ** //
 
             unsigned long memUsage = 0;
             FILE *statusFile = fopen(statusPath, "r");
 
             if (statusFile){
-                while(fgets(buffer, sizeof(buffer), statusFile)){
-                    if (strncmp(buffer, "VmRSS:", 6) == 0)
+                while(fgets(buffer, sizeof(buffer), statusFile)){ // go through status to find VmRSS
+                    if (strncmp(buffer, "VmRSS:", 6) == 0){ // search buffer for VmRSS
+                        sscanf(buffer, "VmRSS: %lu", &memUsage); // input the memory usage and break
+                        break;
+                    }
                 }
+                fclose(statusFile); // close the file 
+            }
+
+            // ** Retrieving the CPU Time ** //
+
+            unsigned long utime = 0, stime = 0;
+            FILE *statFile = fopen (statPath, "r"); // open /proc/[pid]/stat to get CPU times
+
+            if (statFile){
+                // Skip over pid(%d), comm(%s), state(%c), ppid(%d), pgrp(%d), session(%d), tty_rn(%d), tpgid(%d), flags(%u), minflt(%lu), cminflt(%lu), majflt(%lu), cmajflt(%lu)
+                fscanf(statFile, 
+                "%*d %*s %*c %*d %*d %*d %*d %*d " 
+                "%*u %*lu %*lu %*lu %*lu %lu %lu", &utime, &stime); // IF BREAKS CHANGE BACK HERE!!!!!!
+                fclose(statFile); // close the file
             }
 
         }
